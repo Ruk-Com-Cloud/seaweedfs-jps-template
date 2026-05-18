@@ -36,7 +36,8 @@ globals:
   DATA_DIR: /data
   S3_CONFIG: /config/s3.json
   DEPLOY_HOOK_JS: ${baseUrl}/scripts/deployHook.js
-  # SEAWEEDFS_IMAGE set by onBeforeInit from vers.yaml globals.
+  # Image resolved directly from configs/vers.yaml mixin globals (parse-time).
+  # Do NOT route via an onBeforeInit-set global -> "invalid reference format".
 
 onBeforeInit: scripts/beforeInit.js?_r=${fn.random}
 
@@ -88,7 +89,7 @@ nodes:
 
   - nodeGroup: cp
     displayName: SeaweedFS
-    image: ${globals.SEAWEEDFS_IMAGE}          # chrislusf/seaweedfs:<pinned tag>
+    image: ${globals.seaweedfs_image_repo}:${globals.seaweedfs_default_tag}   # from configs/vers.yaml mixin (parse-time)
     count: ${settings.nodeCount:1}            # 1 for single; cluster experimental
     cloudlets: 16
     # All-in-one single-node: master+volume+filer+s3 in one process.
