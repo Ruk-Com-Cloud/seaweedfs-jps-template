@@ -1,0 +1,78 @@
+# "Change Version" lifecycle add-on (PRD F5). type:update on an EXISTING env.
+# Backup-before-upgrade -> redeploy to a TESTED tag keeping volume data -> verify.
+# Rollback = run again selecting the previous tag (FR-5.5).
+#
+# Synthesized from verified official parts (buttons + RedeployContainersByGroup
+# + onBefore/AfterRedeployContainer). [VERIFY-LIVE] before listing.
+type: update
+id: seaweedfs-change-version
+name: Change Version
+baseUrl: https://raw.githubusercontent.com/Ruk-Com-Cloud/seaweedfs-jps-template/main
+
+settings:
+  main:
+    fields:
+      # Keep in sync with configs/vers.yaml `seaweedfs_allowlist` (tested tags
+      # only; NEVER `latest` on prod). [TODO พรุ่งนี้] pin a real tested tag.
+      - name: targetTag
+        type: list
+        caption: Target SeaweedFS version (tested tags only)
+        values:
+          latest: SeaweedFS latest (PLACEHOLDER — pin before release)
+        default: latest
+        required: true
+
+buttons:
+  - caption: Change Version
+    action: changeVersion
+    settings: main
+    confirmText: |
+      A full backup is taken FIRST. The container is then redeployed to the
+      selected version with volume data preserved. If anything fails you can
+      roll back by running this again and selecting the previous version.
+      Proceed?
+    loadingText: Backing up and changing version...
+    successText: text/upgrade-success.md
+
+actions:
+  changeVersion:
+    - backupCp
+    - api: environment.control.RedeployContainersByGroup
+      nodeGroup: cp
+      tag: ${globals.seaweedfs_image_repo}:${this.targetTag}
+      useExistingVolumes: true
+
+  backupCp:
+    # Snapshot data + s3.json into the persistent /backups volume. Keep last 5.
+    - cmd[cp]: |-
+        TS=$(date +%Y%m%d-%H%M%S)
+        mkdir -p /backups
+        tar czf /backups/seaweedfs-pre-upgrade-$TS.tgz -C / data config \
+          && echo "snapshot: /backups/seaweedfs-pre-upgrade-$TS.tgz"
+        ls -1t /backups/seaweedfs-pre-upgrade-*.tgz 2>/dev/null | tail -n +6 | xargs -r rm -f
+      user: root
+    - assert:
+        - condition: "${response.responses.exitStatus} === 0"
+          message: "Pre-upgrade backup FAILED — aborting before redeploy.
+                    Free disk space or check the /backups volume, then retry."
+
+  onBeforeRedeployContainer [cp, useExistingVolumes:true]:
+    - cmd[cp]: sync
+      user: root
+
+  # SeaweedFS S3 health: GET /healthz on the S3 port (verified). Never "/"
+  # (403 when auth enabled — seaweedfs#8243).
+  onAfterRedeployContainer [cp]:
+    - cmd[cp]: |-
+        for i in $(seq 1 30); do
+          curl -fsS "http://127.0.0.1:${globals.S3_PORT}/healthz" >/dev/null 2>&1 && exit 0
+          sleep 2
+        done
+        echo "SeaweedFS health check failed after upgrade"; exit 1
+      user: root
+    - assert:
+        - condition: "${response.responses.exitStatus} === 0"
+          message: "Upgrade health check FAILED. Data + s3.json were backed up
+                    (/backups) and volumes preserved — roll back by running
+                    'Change Version' again selecting the previous version,
+                    then restore the snapshot if needed."

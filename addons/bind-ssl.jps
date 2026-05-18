@@ -1,0 +1,55 @@
+# Phase-2 SSL bind add-on (PRD FR-3.5). type:update on an EXISTING env.
+# Click AFTER pointing DNS at the public IP. Idempotent / re-runnable.
+#
+# The Let's Encrypt add-on does NOT write our HTTPS vhost (delegates :443 to
+# jem ssl/SLB). We pass our JS deployHook (scripts/deployHook.js) which the
+# add-on runs post-issue AND on every ~30-day renewal — it writes the :443
+# server block including the shared SigV4-safe contract (nginx/s3-proxy.inc).
+type: update
+id: seaweedfs-bind-ssl
+name: Bind SSL / Issue Certificate
+baseUrl: https://raw.githubusercontent.com/Ruk-Com-Cloud/seaweedfs-jps-template/main
+
+settings:
+  main:
+    fields:
+      - name: externalDomain
+        type: string
+        caption: S3 domain to secure (e.g. s3.example.com)
+        vtype: domain
+        required: true
+
+buttons:
+  - caption: Bind SSL / Issue Certificate
+    action: bindSsl
+    settings: main
+    confirmText: |
+      Make sure your DNS A record for the domain already points at this
+      environment's public IP and has propagated (dig +short <domain>).
+      Proceed to validate DNS and issue/bind the certificate?
+    loadingText: Validating DNS and issuing certificate...
+    successText: text/ssl-success.md
+
+actions:
+  bindSsl:
+    - cmd[bl]: |-
+        RESOLVED=$(dig +short ${this.externalDomain} | tail -n1)
+        MYIP=$(curl -fsSL -4 ifconfig.me || true)
+        echo "resolved=$RESOLVED myip=$MYIP"
+        test -n "$RESOLVED" && test "$RESOLVED" = "$MYIP"
+      user: root
+    - assert:
+        - condition: "${response.responses.exitStatus} === 0"
+          message: "DNS for ${this.externalDomain} does not resolve to this
+                    environment's public IP yet. Create/verify the A record,
+                    wait for propagation, then click the button again."
+    - install:
+        jps: https://raw.githubusercontent.com/jelastic-jps/lets-encrypt/master/manifest.jps?_r=${fn.random}
+        nodeGroup: bl
+        settings:
+          customDomains: ${this.externalDomain}
+          deployHook: ${baseUrl}/scripts/deployHook.js?_r=${fn.random}
+          deployHookType: js
+          undeployHook: ${baseUrl}/scripts/deployHook.js?_r=${fn.random}
+          undeployHookType: js
+    # [VERIFY-LIVE] LE cert issuance + deployHook :443 reload end-to-end.

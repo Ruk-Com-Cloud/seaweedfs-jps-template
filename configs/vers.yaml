@@ -1,0 +1,20 @@
+# SeaweedFS version pins + tested-tag allowlist (single source of version truth).
+# Bump here only. main = dev; releases are Git tags vX.Y.Z; marketplace points
+# at a tag. A tag enters `allowlist` ONLY after CI (s3-tests + E2E
+# SigV4/multipart/presigned via LB) passes against it (FR-5.1 / OQ-6).
+#
+# SeaweedFS is production-mature (Apache-2.0) but has NO SemVer/LTS policy
+# (rolling single version line) — so the tested-tag discipline still applies.
+
+globals:
+  # [TODO พรุ่งนี้] PIN a real tested SeaweedFS tag (e.g. "3.xx") here and in
+  # addons/change-version.jps before any release. `latest` is a placeholder
+  # for scaffold/test only — NEVER ship `latest` on the production path.
+  seaweedfs_default_tag: "latest"
+  seaweedfs_image_repo: "chrislusf/seaweedfs"
+
+  seaweedfs_allowlist:
+    - tag: "latest"
+      released: ""
+      status: "candidate"        # tested | candidate | blocked
+      notes: "PLACEHOLDER — replace with a pinned, CI-tested tag (OQ-6)."
