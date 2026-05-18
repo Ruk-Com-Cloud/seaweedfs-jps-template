@@ -81,7 +81,7 @@ settings:
 # Docker; LB owns TLS + SigV4-safe contract). nodeType verified.
 nodes:
   - nodeGroup: bl
-    nodeType: nginx-dockerized
+    nodeType: nginx
     displayName: Load Balancer
     count: 1
     fixedCloudlets: 1
