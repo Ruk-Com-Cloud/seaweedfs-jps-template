@@ -1,9 +1,13 @@
 /**
- * onBeforeInit — pin the SeaweedFS image from configs/vers.yaml globals and
- * guard the EXPERIMENTAL cluster path.
+ * onBeforeInit — guard the EXPERIMENTAL cluster path only.
+ *
+ * The image is NOT set here: node topology is evaluated before script-set
+ * globals exist (routing the image through an onBeforeInit global yields a
+ * literal "${globals.SEAWEEDFS_IMAGE}:latest" -> "invalid reference format").
+ * It is resolved directly from the configs/vers.yaml mixin globals in
+ * nodes.cp.image.
  *
  * Cloud Scripting JS: return { result: 0 } to continue; result != 0 aborts.
- * nodeCount only exists when topology == cluster (showIf child of topology).
  */
 
 var topology  = '${settings.topology}';
@@ -21,11 +25,4 @@ if (topology === 'cluster') {
 	}
 }
 
-return {
-	result: 0,
-	onAfterReturn: {
-		setGlobals: {
-			SEAWEEDFS_IMAGE: '${globals.seaweedfs_image_repo}:${globals.seaweedfs_default_tag}'
-		}
-	}
-};
+return { result: 0 };
