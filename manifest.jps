@@ -150,15 +150,22 @@ actions:
     # [VERIFY-LIVE] IPv4/quota behavior on target edition.
 
   configureLB:
-    # Shared SigV4-safe include + :80 vhost; reload via /etc/init.d/nginx
-    # (verified pattern). :443 vhost is written later by the LE deployHook.
+    # :80 server written inline so server_name binds the env + custom domain
+    # (NOT `_`/default_server — the Jelastic nginx LB already owns the `_`
+    # default; duplicating it makes nginx IGNORE our server). Reload via
+    # `nginx -s reload` (this edition's nginx node has no /etc/init.d/nginx).
     - cmd[bl]: |-
         curl -fsSL '${baseUrl}/nginx/s3-proxy.inc?_r=${fn.random}' \
           | sed "s|__CP_HOST__|${nodes.cp.address}|g; s|__S3_PORT__|${globals.S3_PORT}|g" \
           > /etc/nginx/conf.d/s3-proxy.inc
-        curl -fsSL '${baseUrl}/nginx/s3-proxy.conf.tpl?_r=${fn.random}' \
-          > /etc/nginx/conf.d/s3-proxy.conf
-        nginx -t && sudo /etc/init.d/nginx reload
+        cat > /etc/nginx/conf.d/s3-proxy.conf <<'EOF'
+        server {
+            listen 80;
+            server_name ${env.domain} ${settings.externalDomain};
+            include /etc/nginx/conf.d/s3-proxy.inc;
+        }
+        EOF
+        nginx -t && nginx -s reload
       user: root
     # [VERIFY-LIVE] conf.d path + coexistence with platform SLB/jem-ssl.
 
