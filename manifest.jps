@@ -146,7 +146,7 @@ actions:
   attachPublicIp:
     # AttachExtIp is per-node (verified). bl is count:1.
     - api: environment.binder.AttachExtIp
-      nodeId: ${nodes.bl.id}
+      nodeid: ${nodes.bl.id}
     # [VERIFY-LIVE] IPv4/quota behavior on target edition.
 
   configureLB:

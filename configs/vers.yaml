@@ -1,20 +1,19 @@
-# SeaweedFS version pins + tested-tag allowlist (single source of version truth).
-# Bump here only. main = dev; releases are Git tags vX.Y.Z; marketplace points
-# at a tag. A tag enters `allowlist` ONLY after CI (s3-tests + E2E
-# SigV4/multipart/presigned via LB) passes against it (FR-5.1 / OQ-6).
+# SeaweedFS version pins (single source of version truth).
+# Bump here only. main = dev; releases are Git tags vX.Y.Z. A tag may be used
+# ONLY after CI passes (FR-5.1 / OQ-6). NEVER `latest` on the production path.
 #
-# SeaweedFS is production-mature (Apache-2.0) but has NO SemVer/LTS policy
-# (rolling single version line) — so the tested-tag discipline still applies.
+# SeaweedFS is production-mature (Apache-2.0) but has NO SemVer/LTS (rolling
+# single version line) — tested-tag discipline still applies.
+#
+# IMPORTANT: loaded via `mixins:` → `globals:` merged into manifest globals.
+# JPS globals MUST be SCALARS only — a nested list/object here breaks manifest
+# processing and leaks into settings. Tested-tag allowlist kept as docs below;
+# the user-facing picker lives in addons/change-version.jps.
+#
+# Tested-tag allowlist (process doc — keep in sync with change-version.jps):
+#   [TODO พรุ่งนี้] pin a real tested SeaweedFS tag (e.g. "3.xx"). `latest`
+#   is a scaffold/test placeholder only — replace before any release.
 
 globals:
-  # [TODO พรุ่งนี้] PIN a real tested SeaweedFS tag (e.g. "3.xx") here and in
-  # addons/change-version.jps before any release. `latest` is a placeholder
-  # for scaffold/test only — NEVER ship `latest` on the production path.
   seaweedfs_default_tag: "latest"
   seaweedfs_image_repo: "chrislusf/seaweedfs"
-
-  seaweedfs_allowlist:
-    - tag: "latest"
-      released: ""
-      status: "candidate"        # tested | candidate | blocked
-      notes: "PLACEHOLDER — replace with a pinned, CI-tested tag (OQ-6)."
