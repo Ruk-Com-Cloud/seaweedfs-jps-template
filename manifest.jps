@@ -30,8 +30,8 @@ mixins:
 
 # Secrets generated at runtime, never stored in repo/manifest (FR-7.1/FR-7.5).
 globals:
-  S3_ACCESS_KEY: ${fn.password(20)}
-  S3_SECRET_KEY: ${fn.password(40)}
+  S3_ACCESS_KEY: ${fn.password}
+  S3_SECRET_KEY: ${fn.password}
   S3_PORT: 8333
   DATA_DIR: /data
   S3_CONFIG: /config/s3.json
